@@ -226,25 +226,12 @@ blocks_dict = {
 
 
 class HRNet(nn.Module):
-    def __init__(self, stage1_cfg, stage2_cfg, stage3_cfg, stage4_cfg, input_height, input_width, n_classes, W):
+    def __init__(self, cfg):
         super(HRNet, self).__init__()
 
-        C, C2, C4, C8 = W, int(W*2), int(W*4), int(W*8)
-        
-        stage1_cfg['NUM_CHANNELS'] = [64]
-        stage2_cfg['NUM_CHANNELS'] = [C, C2]
-        stage3_cfg['NUM_CHANNELS'] = [C, C2, C4]
-        stage4_cfg['NUM_CHANNELS'] = [C, C2, C4, C8]
-        
-        self.stage1_cfg = stage1_cfg
-        self.stage2_cfg = stage2_cfg
-        self.stage3_cfg = stage3_cfg
-        self.stage4_cfg = stage4_cfg
-        self.NUM_CLASSES = n_classes
+        self.cfg = cfg
         self.inplanes = 64
-        self.input_height = input_height
-        self.input_width = input_width
-        self.W = W
+
 
         # stem net
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1, bias=False)
@@ -254,32 +241,32 @@ class HRNet(nn.Module):
         self.relu = nn.ReLU(inplace=relu_inplace)
 
         # STAGE 1
-        num_channels = self.stage1_cfg['NUM_CHANNELS'][0]
-        block = blocks_dict[self.stage1_cfg['BLOCK']]
-        num_blocks = self.stage1_cfg['NUM_BLOCKS'][0]
+        num_channels = cfg.MODEL.STAGE_1.NUM_CHANNELS[0]
+        block = blocks_dict[cfg.MODEL.STAGE_1.BLOCK]
+        num_blocks = cfg.MODEL.STAGE_1.NUM_BLOCKS[0]
         self.layer1 = self._make_layer(block, 64, num_channels, num_blocks)
         stage1_out_channel = block.expansion * num_channels
 
         # STAGE 2
-        num_channels = self.stage2_cfg['NUM_CHANNELS']
-        block = blocks_dict[self.stage2_cfg['BLOCK']]
+        num_channels = cfg.MODEL.STAGE_2.NUM_CHANNELS
+        block = blocks_dict[cfg.MODEL.STAGE_2.BLOCK]
         num_channels = [num_channels[i] * block.expansion for i in range(len(num_channels))]
         self.transition1 = self._make_transition_layer([stage1_out_channel], num_channels)
-        self.stage2, pre_stage_channels = self._make_stage(self.stage2_cfg, num_channels)
+        self.stage2, pre_stage_channels = self._make_stage(cfg.MODEL.STAGE_2, num_channels)
 
         # STAGE 3
-        num_channels = self.stage3_cfg['NUM_CHANNELS']
-        block = blocks_dict[self.stage3_cfg['BLOCK']]
+        num_channels = cfg.MODEL.STAGE_3.NUM_CHANNELS
+        block = blocks_dict[cfg.MODEL.STAGE_3.BLOCK]
         num_channels = [num_channels[i] * block.expansion for i in range(len(num_channels))]
         self.transition2 = self._make_transition_layer(pre_stage_channels, num_channels)
-        self.stage3, pre_stage_channels = self._make_stage(self.stage3_cfg, num_channels)
+        self.stage3, pre_stage_channels = self._make_stage(cfg.MODEL.STAGE_3, num_channels)
 
         # STAGE 4
-        num_channels = self.stage4_cfg['NUM_CHANNELS']
-        block = blocks_dict[self.stage4_cfg['BLOCK']]
+        num_channels = cfg.MODEL.STAGE_4.NUM_CHANNELS
+        block = blocks_dict[cfg.MODEL.STAGE_4.BLOCK]
         num_channels = [num_channels[i] * block.expansion for i in range(len(num_channels))]
         self.transition3 = self._make_transition_layer(pre_stage_channels, num_channels)
-        self.stage4, pre_stage_channels = self._make_stage(self.stage4_cfg, num_channels, multi_scale_output=True)
+        self.stage4, pre_stage_channels = self._make_stage(cfg.MODEL.STAGE_4, num_channels, multi_scale_output=True)
 
         last_inp_channels = np.int(np.sum(pre_stage_channels))
 
@@ -294,7 +281,7 @@ class HRNet(nn.Module):
             nn.ReLU(inplace=relu_inplace),
             nn.Conv2d(
                 in_channels=last_inp_channels,
-                out_channels=self.NUM_CLASSES,
+                out_channels=cfg.DATASET.NUM_CLASSES,
                 kernel_size=1,
                 stride=1,
                 padding=0),            
@@ -345,11 +332,11 @@ class HRNet(nn.Module):
         return nn.Sequential(*layers)
 
     def _make_stage(self, layer_config, num_inchannels, multi_scale_output=True):
-        num_modules = layer_config['NUM_MODULES']
-        num_branches = layer_config['NUM_BRANCHES']
-        num_blocks = layer_config['NUM_BLOCKS']
-        num_channels = layer_config['NUM_CHANNELS']
-        block = blocks_dict[layer_config['BLOCK']]
+        num_modules = layer_config.NUM_MODULES
+        num_branches = layer_config.NUM_BRANCHES
+        num_blocks = layer_config.NUM_BLOCKS
+        num_channels = layer_config.NUM_CHANNELS
+        block = blocks_dict[layer_config.BLOCK]
         fuse_method = "SUM"
 
         modules = []
@@ -377,7 +364,7 @@ class HRNet(nn.Module):
         x = self.layer1(x)
 
         x_list = []
-        for i in range(self.stage2_cfg['NUM_BRANCHES']):
+        for i in range(self.cfg.MODEL.STAGE_2.NUM_BRANCHES):
             if self.transition1[i] is not None:
                 x_list.append(self.transition1[i](x))
             else:
@@ -385,9 +372,9 @@ class HRNet(nn.Module):
         y_list = self.stage2(x_list)
 
         x_list = []
-        for i in range(self.stage3_cfg['NUM_BRANCHES']):
+        for i in range(self.cfg.MODEL.STAGE_3.NUM_BRANCHES):
             if self.transition2[i] is not None:
-                if i < self.stage2_cfg['NUM_BRANCHES']:
+                if i < self.cfg.MODEL.STAGE_2.NUM_BRANCHES:
                     x_list.append(self.transition2[i](y_list[i]))
                 else:
                     x_list.append(self.transition2[i](y_list[-1]))
@@ -396,9 +383,9 @@ class HRNet(nn.Module):
         y_list = self.stage3(x_list)
 
         x_list = []
-        for i in range(self.stage4_cfg['NUM_BRANCHES']):
+        for i in range(self.cfg.MODEL.STAGE_4.NUM_BRANCHES):
             if self.transition3[i] is not None:
-                if i < self.stage3_cfg['NUM_BRANCHES']:
+                if i < self.cfg.MODEL.STAGE_3.NUM_BRANCHES:
                     x_list.append(self.transition3[i](y_list[i]))
                 else:
                     x_list.append(self.transition3[i](y_list[-1]))
@@ -416,7 +403,7 @@ class HRNet(nn.Module):
 
         x = self.last_layer(x)
         
-        x = F.interpolate(input=x, size=(self.input_height, self.input_width), mode='bilinear', 
+        x = F.interpolate(input=x, size=self.cfg.DATASET.CROP_SIZE, mode='bilinear', 
                           align_corners=ALIGN_CORNERS)
         
         x = x.type(torch.float32)

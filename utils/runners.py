@@ -8,7 +8,6 @@ import numpy as np
 from torch import nn
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
-# from 
 from utils.modelsummary import get_model_summary
 from utils.train_utils import AverageMeter, get_confusion_matrix, adjust_learning_rate, create_logger
 
@@ -64,8 +63,8 @@ def validate(cfg, dataloader, model, loss_fn, writer_dict):
     model.eval()
     
     ave_loss = AverageMeter()
-    iter_steps = len(dataloader.dataset) // cfg['BATCH_SIZE'] 
-    confusion_matrix = np.zeros((cfg['NUM_CLASSES'], cfg['NUM_CLASSES'], 1))
+    iter_steps = len(dataloader.dataset) // cfg.BATCH_SIZE
+    confusion_matrix = np.zeros((cfg.NUM_CLASSES, cfg.NUM_CLASSES, 1))
     
     with torch.no_grad():
         for idx, batch in enumerate(dataloader):
@@ -104,7 +103,7 @@ def validate(cfg, dataloader, model, loss_fn, writer_dict):
 
 def testval(cfg, testloader, model, sv_dir='', sv_pred=False):
     model.eval()
-    confusion_matrix = np.zeros((cfg['NUM_CLASSES'], cfg['NUM_CLASSES']))
+    confusion_matrix = np.zeros((cfg.NUM_CLASSES, cfg.NUM_CLASSES))
     
     with torch.no_grad():
         for index, batch in enumerate(tqdm(testloader)):

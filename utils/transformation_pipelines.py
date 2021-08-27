@@ -1,16 +1,17 @@
 import numpy as np
 import albumentations
-from utils.label_utils import get_labels, label_mapping
+from utils.label_utils import get_labels
+from utils.data_utils import label_mapping
 from utils.transformations import (normalize, ComposeSingle, ComposeDouble, re_normalize, 
                                    FunctionWrapperSingle, FunctionWrapperDouble, 
                                    AlbuSeg2d, random_crop, random_resize, random_brightness, scale_aug)
-
 
 labels = get_labels()
 id2label =      { label.id      : label for label in labels }
 
 
 def get_transforms_training(cfg):
+    
     transforms_training = ComposeDouble([
         FunctionWrapperDouble(random_resize, scale_factor=16, base_size=cfg.DATASET.BASE_SIZE[1], both=True),
         FunctionWrapperDouble(random_crop, crop_size=cfg.DATASET.CROP_SIZE, ignore_label=cfg.DATASET.IGNORE_LABEL, both=True),

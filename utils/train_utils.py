@@ -20,25 +20,6 @@ from skimage.io import imread
 from skimage.transform import resize
 from sklearn.externals._pilutil import bytescale
 from typing import List, Callable, Tuple
-# +
-
-
-class FullModel(nn.Module):
-    """
-    Distribute the loss on multi-gpu to reduce 
-    the memory cost in the main gpu.
-    You can check the following discussion.
-    https://discuss.pytorch.org/t/dataparallel-imbalanced-memory-usage/22551/21
-    """
-    def __init__(self, model, loss):
-        super(FullModel, self).__init__()
-        self.model = model
-        self.loss = loss
-
-    def forward(self, inputs, labels, *args, **kwargs):
-        outputs = self.model(inputs, *args, **kwargs)
-        loss = self.loss(outputs, labels)
-        return torch.unsqueeze(loss,0), outputs
 
 
 class AverageMeter(object):
@@ -78,7 +59,6 @@ class AverageMeter(object):
 
 
 
-# +
 class CrossEntropy(nn.Module):
     def __init__(self, ignore_label=-1, weight=None):
         super(CrossEntropy, self).__init__()
@@ -159,7 +139,7 @@ def get_confusion_matrix(label, pred, size, num_class, ignore=-1):
                 confusion_matrix[i_label, i_pred] = label_count[cur_index]
     return confusion_matrix
     
-    
+
 def adjust_learning_rate(optimizer, base_lr, end_lr, step, decay_steps, power=0.9):
     lr = ((base_lr - end_lr) * (1 - step / decay_steps)**(power)) + end_lr
     return lr    

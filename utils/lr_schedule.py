@@ -1,7 +1,3 @@
-
-
-
-
 class LrUpdater():
     """Modified version of LR Scheduler in MMCV.
 
