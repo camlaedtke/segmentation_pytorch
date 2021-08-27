@@ -8,7 +8,7 @@ For training the implementation details of the original papers are followed as c
 #  HRNet
 
  
- ![](outputs/stuttgart_hrnet_w48_sample.gif)
+ ![](src/stuttgart_hrnet_w48_sample.gif)
 
 
 
