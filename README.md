@@ -64,8 +64,11 @@ model = Segformer(
 - Dropout2d : 1 layers
 
 
-## Simple SegFormer
+## Simple SegFormer 
 ----------------------------------------------------------------------------------------------------
+
+Code taken from this [repo](https://github.com/lucidrains/segformer-pytorch)
+
 
 ```python
 model = Segformer(
