@@ -423,7 +423,7 @@ class Segformer(nn.Module):
         
          ############## MLP decoder on C1-C4 ###########
         n, _, h, w = c4.shape
-        h_out, w_out = c1.size()[2]*4, c1.size()[3]*4
+        h_out, w_out = c1.size()[2], c1.size()[3]
 
         _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
         _c4 = F.interpolate(_c4, size = c1.size()[2:], mode = 'bilinear', align_corners = False)

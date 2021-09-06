@@ -56,7 +56,7 @@ def train(
         
     writer.add_scalar('train_loss', ave_loss.average(), global_steps)
     writer_dict['train_global_steps'] = global_steps + 1
-        
+
             
 
 def validate(cfg, dataloader, model, loss_fn, writer_dict):
@@ -99,6 +99,7 @@ def validate(cfg, dataloader, model, loss_fn, writer_dict):
     writer_dict['valid_global_steps'] = global_steps + 1
         
     return ave_loss.average(), mean_IoU, IoU_array
+
 
 
 def testval(cfg, testloader, model, sv_dir='', sv_pred=False):

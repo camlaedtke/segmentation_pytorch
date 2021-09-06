@@ -58,8 +58,7 @@ class SegmentationDataset(torch.utils.data.Dataset):
         if labels:
             self.targets = [pathlib.PurePath(file) for file in sorted(glob.glob(search_annot_files))]
         
-        # print("{} images".format(len(self.inputs)))
-        # print("{} masks".format(len(self.targets)))
+        print("Images: {} , Labels: {}".format(len(self.inputs), len(self.targets)))
         
         self.transform = transform
         self.inputs_dtype = torch.float32
@@ -70,7 +69,7 @@ class SegmentationDataset(torch.utils.data.Dataset):
                                    1.0166, 0.9969, 0.9754, 1.0489,
                                    0.8786, 1.0023, 0.9539, 0.9843, 
                                    1.1116, 0.9037, 1.0865, 1.0955, 
-                                   1.0865, 1.1529, 1.0507]) # .cuda()
+                                   1.0865, 1.1529, 1.0507]).cuda()
        
 
     def __len__(self):
@@ -147,7 +146,7 @@ class SegmentationDataset(torch.utils.data.Dataset):
         pil_blend.save(os.path.join(sv_path, name[0]+'.png'))
 
         
-        
+
 
 def label_mapping(seg: np.ndarray, label_map: dict):
     seg = seg.astype(np.int32)
@@ -178,7 +177,7 @@ def display(display_list):
     plt.tight_layout()
     plt.show()
 
-    
+
 def display_blend(display_list):
     plt.figure(figsize=(10, 10), dpi=150)
     for i in range(len(display_list)):
