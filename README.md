@@ -19,7 +19,7 @@ Due to memory limitations (single RTX 3090 GPU 24 GB), gradient accumilation was
 # SegFormer 
 ----------------------------------------------------------------------------------------------------
 
-##  Official SegFormer
+###  Official SegFormer 
 
 Replication of the B5 model in the official repository. The number of parameters matches up with the paper. The total number of multiply adds may be irrelevant, since it is difficult to determine if it is the same calculation used in the paper to calculate "flops". 
 
@@ -63,7 +63,7 @@ model = Segformer(
 - Dropout2d : 1 layers
 
 
-## Simple SegFormer 
+### Simple SegFormer 
 ----------------------------------------------------------------------------------------------------
 
 Code taken from this [repo](https://github.com/lucidrains/segformer-pytorch)
