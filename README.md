@@ -10,23 +10,18 @@ Due to memory limitations (single RTX 3090 GPU 24 GB), gradient accumilation was
 
 
 #  HRNet
-
+----------------------------------------------------------------------------------------------------
 
  ![](src/stuttgart_hrnet_w48_sample.gif)
 
 
 
-# SegFormer
-
-
-
-Model Details
-
-
-##  Official SegFormer
+# SegFormer 
 ----------------------------------------------------------------------------------------------------
 
-Replication of model in official repository
+##  Official SegFormer
+
+Replication of the B5 model in the official repository. The number of parameters matches up with the paper. The total number of multiply adds may be irrelevant, since it is difficult to determine if it is the same calculation used in the paper to calculate "flops". 
 
 ```python
 model = Segformer(
@@ -47,11 +42,11 @@ model = Segformer(
 
 ```
 
-#### Total Parameters: 85,915,731
-----------------------------------------------------------------------------------------------------
-#### Total Multiply Adds (For Convolution and Linear Layers only): 11,607 GFLOPs
-----------------------------------------------------------------------------------------------------
-#### Number of Layers
+**Total Parameters: 85,915,731**
+
+**Total Multiply Adds (For Convolution and Linear Layers only): 11,607 GFLOPs**
+
+**Number of Layers**
 - Conv2d : 107 layers   
 - LayerNorm : 161 layers   
 - OverlapPatchEmbed : 4 layers   
@@ -87,11 +82,11 @@ model = Segformer(
 ```
 
 
-#### Total Parameters: 255,280,531
+**Total Parameters: 255,280,531**
 
-#### Total Multiply Adds (For Convolution and Linear Layers only): 679 GFLOPs
+**Total Multiply Adds (For Convolution and Linear Layers only): 679 GFLOPs**
 
-#### Number of Layers
+**Number of Layers**
 - **MiT** : 1 layers   
 - Unfold : 4 layers   
 - **Conv2d** : 374 layers   
