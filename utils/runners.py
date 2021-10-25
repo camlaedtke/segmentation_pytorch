@@ -102,15 +102,18 @@ def validate(cfg, dataloader, model, loss_fn, writer_dict):
 
 
 
-def testval(cfg, testloader, model, sv_dir='', sv_pred=False):
+def testval(cfg, testloader, model, sv_dir='', sv_pred=False, sliding_inf=False):
     model.eval()
-    confusion_matrix = np.zeros((cfg.NUM_CLASSES, cfg.NUM_CLASSES))
+    confusion_matrix = np.zeros((cfg.DATASET.NUM_CLASSES, cfg.DATASET.NUM_CLASSES))
     
     with torch.no_grad():
         for index, batch in enumerate(tqdm(testloader)):
             image, label, _, name, *border_padding = batch
             size = label.size()
-            pred = testloader.dataset.inference(model, image)
+            if sliding_inf:
+                pred = testloader.dataset.sliding_inference(model, image)
+            else:
+                pred = testloader.dataset.inference(model, image)
 
             confusion_matrix += get_confusion_matrix(
                 label, pred, size, cfg.DATASET.NUM_CLASSES, cfg.DATASET.NUM_CLASSES)
@@ -128,6 +131,9 @@ def testval(cfg, testloader, model, sv_dir='', sv_pred=False):
                 sv_path = os.path.join(sv_dir, 'test_results')
                 if not os.path.exists(sv_path):
                     os.mkdir(sv_path)
+                if sliding_inf:
+                    # print(pred.shape)
+                    pred = np.squeeze(pred, 0)
                 testloader.dataset.save_pred(image, pred, sv_path, name)
 
     pos = confusion_matrix.sum(1)

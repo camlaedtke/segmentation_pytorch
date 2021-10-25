@@ -64,12 +64,14 @@ class SegmentationDataset(torch.utils.data.Dataset):
         self.inputs_dtype = torch.float32
         if labels:
             self.targets_dtype = torch.int64
+            
+        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         
         self.class_weights = torch.FloatTensor([0.8373, 0.918, 0.866, 1.0345, 
                                    1.0166, 0.9969, 0.9754, 1.0489,
                                    0.8786, 1.0023, 0.9539, 0.9843, 
                                    1.1116, 0.9037, 1.0865, 1.0955, 
-                                   1.0865, 1.1529, 1.0507]).cuda()
+                                   1.0865, 1.1529, 1.0507]).to(self.device)
        
 
     def __len__(self):
@@ -124,6 +126,68 @@ class SegmentationDataset(torch.utils.data.Dataset):
         return pred.exp()
     
     
+    def sliding_window(self, im, crop_size, stride):
+        B, C, H, W = im.shape
+        cs = crop_size
+
+        windows = {"crop": [], "anchors": []}
+        h_anchors = np.arange(0, H, stride[0])
+        w_anchors = np.arange(0, W, stride[1])
+
+        h_anchors = [h.item() for h in h_anchors if h < H - cs[0]] + [H - cs[0]]
+        w_anchors = [w.item() for w in w_anchors if w < W - cs[1]] + [W - cs[1]]
+        for ha in h_anchors:
+            for wa in w_anchors:
+                window = im[:, :, ha : ha + cs[0], wa : wa + cs[1]]
+                windows["crop"].append(window)
+                windows["anchors"].append((ha, wa))
+        windows["shape"] = (H, W)
+        return windows
+    
+    
+    def merge_windows(self, windows, crop_size, ori_shape):
+        cs = crop_size
+        im_windows = windows["crop_seg"]
+        anchors = windows["anchors"]
+        C = im_windows[0].shape[1]
+        H, W = windows["shape"]
+
+        logit = np.zeros((C, H, W))
+        count = np.zeros((1, H, W))
+        for window, (ha, wa) in zip(im_windows, anchors):
+            # print("window.shape: {}, (ha, wa): ({}, {})".format(window.shape, ha, wa))
+            logit[:, ha : ha + cs[0], wa : wa + cs[1]] += window.squeeze()
+            count[:, ha : ha + cs[0], wa : wa + cs[1]] += 1
+
+        logit = logit / count
+        logit = F.interpolate(torch.from_numpy(logit).unsqueeze(0), ori_shape, mode="bilinear")[0]
+        result = F.softmax(logit, 0)
+        return result.numpy()
+    
+    
+    def sliding_inference(self, model, image):
+        # assume input image is channels first
+        batch, _, ori_height, ori_width = image.size()
+        assert batch == 1, "only supporting batchsize 1."
+
+        # gather sliding windows 
+        windows = self.sliding_window(im=image, crop_size=self.cfg.CROP_SIZE, stride=(768, 768))
+        crop_list = windows['crop']
+
+        # make predictions on windows
+        pred_list = []
+        for x_crop in crop_list:
+            pred = model(x_crop.to(self.device))
+            pred = F.interpolate(pred, self.cfg.CROP_SIZE, mode="bilinear", align_corners=False)        
+            pred_list.append(pred.detach().numpy())
+
+        windows['crop_seg'] = pred_list
+        pred = self.merge_windows(windows, crop_size=self.cfg.CROP_SIZE, ori_shape=self.cfg.BASE_SIZE)
+        # print(pred.shape)
+        pred = np.expand_dims(pred, axis=0)
+        return torch.from_numpy(np.exp(pred))
+
+    
     def label_to_rgb(self, seg):
         h = seg.shape[0]
         w = seg.shape[1]
@@ -135,13 +199,24 @@ class SegmentationDataset(torch.utils.data.Dataset):
     
     
     def save_pred(self, image, pred, sv_path, name):
-        pred = np.asarray(np.argmax(pred.cpu(), axis=1), dtype=np.uint8)
-        pred = self.label_to_rgb(pred[0])
+        # pred = np.asarray(np.argmax(pred.cpu(), axis=1), dtype=np.uint8)
+        # pred = np.asarray(np.argmax(pred, axis=0), dtype=np.uint8)
+        pred = np.asarray(pred, dtype=np.uint8)
+        # convert to channels last
+        pred = pred.transpose((1,2,0)).copy()
+        # print(pred.shape)
+        # PROBLEM IS HERE
+        pred = np.argmax(pred, axis=-1)
+        # print(pred.shape)
+        pred = self.label_to_rgb(pred)
+        # print(pred.shape)
         image = image.cpu()
+        # print(image.shape)
         image = image[0].permute(1,2,0).numpy()
+        # print(image.shape)
         image = re_normalize(image)
 
-        blend = cv2.addWeighted(image, 0.8, pred, 0.8, 0)
+        blend = cv2.addWeighted(image, 0.8, pred, 0.6, 0)
         pil_blend = Image.fromarray(blend).convert("RGB")
         pil_blend.save(os.path.join(sv_path, name[0]+'.png'))
 
@@ -181,7 +256,7 @@ def display(display_list):
 def display_blend(display_list):
     plt.figure(figsize=(10, 10), dpi=150)
     for i in range(len(display_list)):
-        blend = cv2.addWeighted(display_list[i][0], 0.8, display_list[i][1], 0.5, 0)
+        blend = cv2.addWeighted(display_list[i][0], 0.8, display_list[i][1], 0.6, 0)
         plt.subplot(1, len(display_list), i+1)
         plt.imshow(blend)
         plt.axis('off')
