@@ -231,7 +231,7 @@ class Segformer(nn.Module):
         patch_size=4, 
         in_chans=3, 
         num_classes=19, 
-        embed_dims=[64, 128, 256, 512],
+        embed_dims=[64, 128, 320, 512],
         num_heads=[1, 2, 5, 8], 
         mlp_ratios=[4, 4, 4, 4], 
         qkv_bias=True, 
@@ -242,7 +242,7 @@ class Segformer(nn.Module):
         norm_layer=nn.LayerNorm,
         depths=[3, 6, 40, 3], 
         sr_ratios=[8, 4, 2, 1],
-        decoder_dim = 256
+        decoder_dim = 768
     ):
         super().__init__()
         self.num_classes = num_classes
