@@ -4,8 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
-from timm.models.registry import register_model
-from timm.models.vision_transformer import _cfg
 from models.segformer_utils.logger import get_root_logger
 from mmcv.runner import load_checkpoint
 
