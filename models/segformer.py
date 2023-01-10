@@ -319,6 +319,7 @@ class Segformer(nn.Module):
         self.linear_c2 = LinearMLP(input_dim=embed_dims[1], embed_dim=decoder_dim)
         self.linear_c1 = LinearMLP(input_dim=embed_dims[0], embed_dim=decoder_dim)
         self.linear_fuse = nn.Conv2d(4 * decoder_dim, decoder_dim, 1)
+        self.linear_fuse_bn = nn.BatchNorm2d(decoder_dim)
         self.dropout = nn.Dropout2d(drop_rate)
         self.linear_pred = nn.Conv2d(decoder_dim, num_classes, kernel_size=1)
 
@@ -437,6 +438,7 @@ class Segformer(nn.Module):
         _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
         _c = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim = 1))
+        _c = self.linear_fuse_bn(_c)
 
         x = self.dropout(_c)
         x = self.linear_pred(x)
