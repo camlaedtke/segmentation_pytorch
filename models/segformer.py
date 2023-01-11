@@ -2,11 +2,8 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from functools import partial
 
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
-from timm.models.registry import register_model
-from timm.models.vision_transformer import _cfg
 from models.segformer_utils.logger import get_root_logger
 from mmcv.runner import load_checkpoint
 
@@ -232,7 +229,7 @@ class Segformer(nn.Module):
         patch_size=4, 
         in_chans=3, 
         num_classes=19, 
-        embed_dims=[64, 128, 256, 512],
+        embed_dims=[64, 128, 320, 512],
         num_heads=[1, 2, 5, 8], 
         mlp_ratios=[4, 4, 4, 4], 
         qkv_bias=True, 
@@ -243,7 +240,7 @@ class Segformer(nn.Module):
         norm_layer=nn.LayerNorm,
         depths=[3, 6, 40, 3], 
         sr_ratios=[8, 4, 2, 1],
-        decoder_dim = 256
+        decoder_dim = 768
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -319,6 +316,7 @@ class Segformer(nn.Module):
         self.linear_c2 = LinearMLP(input_dim=embed_dims[1], embed_dim=decoder_dim)
         self.linear_c1 = LinearMLP(input_dim=embed_dims[0], embed_dim=decoder_dim)
         self.linear_fuse = nn.Conv2d(4 * decoder_dim, decoder_dim, 1)
+        self.linear_fuse_bn = nn.BatchNorm2d(decoder_dim)
         self.dropout = nn.Dropout2d(drop_rate)
         self.linear_pred = nn.Conv2d(decoder_dim, num_classes, kernel_size=1)
 
@@ -437,6 +435,7 @@ class Segformer(nn.Module):
         _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
         _c = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim = 1))
+        _c = self.linear_fuse_bn(_c)
 
         x = self.dropout(_c)
         x = self.linear_pred(x)
